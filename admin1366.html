@@ -1,3 +1,221 @@
+<<<<<<< HEAD
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>پنل مدیریت کافه سلامت</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Vazirmatn', sans-serif; }
+        .glass { background: rgba(17, 24, 39, 0.85); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.08); }
+        .glow { box-shadow: 0 0 50px -10px rgba(99, 102, 241, 0.25); }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: rgba(0,0,0,0.1); }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 4px; }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-gray-950 via-gray-900 to-indigo-950 text-gray-100 min-h-screen flex items-center justify-center p-4 md:p-8">
+
+    <div id="admin-panel" class="w-full max-w-lg glass p-6 md:p-8 rounded-3xl glow space-y-6 hidden border-indigo-500/20">
+        
+        <div class="flex items-center justify-between border-b border-gray-800 pb-4">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-indigo-600/20 text-indigo-400 flex items-center justify-center">
+                    <i class="fa-solid fa-shield-halved"></i>
+                </div>
+                <h2 class="text-xl font-bold">پنل مدیریت کافه سلامت</h2>
+            </div>
+            <a href="index.html" class="text-xs text-indigo-400 hover:underline flex items-center gap-1">
+                <i class="fa-solid fa-house"></i> مشاهده سایت
+            </a>
+        </div>
+
+        <div class="space-y-4 bg-gray-900/50 p-5 rounded-2xl border border-gray-800">
+            <h3 class="font-semibold text-sm text-indigo-400 flex items-center gap-2">
+                <i class="fa-solid fa-circle-plus"></i> آپلود صوت جدید از کامپیوتر
+            </h3>
+            <div>
+                <label class="block text-xs text-gray-400 mb-1.5">عنوان جلسه</label>
+                <input type="text" id="title" placeholder="مثال: جلسه اول - مقدمه" class="w-full bg-gray-950 border border-gray-800 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-500 transition text-gray-200">
+            </div>
+            <div>
+                <label class="block text-xs text-gray-400 mb-1.5">انتخاب فایل صوتی (MP3)</label>
+                <input type="file" id="audio-file" accept="audio/*" class="w-full bg-gray-950 border border-gray-800 rounded-xl px-4 py-2 text-sm text-gray-400 file:ml-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-indigo-600 file:text-white hover:file:bg-indigo-500 cursor-pointer">
+            </div>
+            <button id="submit-btn" onclick="uploadAndAddSession()" class="w-full bg-gradient-to-r from-indigo-600 to-purple-600 font-medium py-3 rounded-xl shadow-lg shadow-indigo-600/20 hover:opacity-90 transition cursor-pointer text-sm">
+                آپلود و انتشار در سایت
+            </button>
+        </div>
+
+        <div class="space-y-3">
+            <h3 class="font-semibold text-sm text-gray-400 flex items-center gap-2">
+                <i class="fa-solid fa-trash-can"></i> مدیریت و حذف فایل‌ها
+            </h3>
+            <div id="admin-list" class="space-y-2 max-h-56 overflow-y-auto pr-1"></div>
+        </div>
+
+    </div>
+
+    <script>
+        // === تنظیمات گیت‌هاب و فضای ابری ===
+        const GITHUB_USER = "misaghshiralix-ctrl";
+        const GITHUB_REPO = "soot-jalasat";
+        const GITHUB_TOKEN = "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";
+        const ADMIN_PASSWORD = "1366";
+
+        // تنظیمات Cloudinary
+        const CLOUD_NAME = "sfyrkwkq"; 
+        const UPLOAD_PRESET = "soot-j";
+        // ====================================
+
+        let currentSessions = [];
+        let fileSha = "";
+
+        function checkAuth() {
+            const enteredPass = prompt("🔐 لطفاً رمز عبور پنل ادمین را وارد کنید:");
+            if (enteredPass === ADMIN_PASSWORD) {
+                document.getElementById('admin-panel').classList.remove('hidden');
+                fetchSessions();
+            } else {
+                alert("❌ رمز عبور اشتباه است!");
+                window.location.href = "index.html";
+            }
+        }
+
+        async function fetchSessions() {
+            const container = document.getElementById('admin-list');
+            container.innerHTML = "<p class='text-gray-500 text-xs text-center py-2'>در حال دریافت اطلاعات از گیت‌هاب...</p>";
+
+            try {
+                const res = await fetch(`https://api.github.com/repos/${GITHUB_USER}/${GITHUB_REPO}/contents/sessions.json`, {
+                    headers: { "Authorization": `token ${GITHUB_TOKEN}` }
+                });
+                
+                if (!res.ok) throw new Error("GitHub fetch failed");
+                
+                const data = await res.json();
+                fileSha = data.sha;
+                
+                // Decode base64 content safely (supporting UTF-8 Persian text)
+                const jsonString = decodeURIComponent(escape(atob(data.content)));
+                currentSessions = JSON.parse(jsonString);
+                
+                renderAdminList();
+            } catch (err) {
+                container.innerHTML = "<p class='text-red-400 text-xs text-center'>خطا در اتصال به گیت‌هاب. لطفاً نام ریپازیتوری را بررسی کنید.</p>";
+            }
+        }
+
+        async function updateGitHub(newSessions) {
+            const contentEncoded = btoa(unescape(encodeURIComponent(JSON.stringify(newSessions, null, 2))));
+            
+            const res = await fetch(`https://api.github.com/repos/${GITHUB_USER}/${GITHUB_REPO}/contents/sessions.json`, {
+                method: "PUT",
+                headers: {
+                    "Authorization": `token ${GITHUB_TOKEN}`,
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    message: "Update sessions via admin panel",
+                    content: contentEncoded,
+                    sha: fileSha
+                })
+            });
+
+            if (res.ok) {
+                const data = await res.json();
+                fileSha = data.content.sha;
+                currentSessions = newSessions;
+                renderAdminList();
+                return true;
+            } else {
+                alert("❌ خطا در ثبت تغییرات در گیت‌هاب.");
+                return false;
+            }
+        }
+
+        async function uploadAndAddSession() {
+            const title = document.getElementById('title').value.trim();
+            const fileInput = document.getElementById('audio-file');
+            const file = fileInput.files[0];
+
+            if (!title || !file) {
+                alert('⚠️ لطفاً عنوان جلسه و فایل صوتی را انتخاب کنید.');
+                return;
+            }
+
+            const btn = document.getElementById('submit-btn');
+            btn.innerText = "در حال آپلود فایل صوتی به فضای ابری...";
+
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('upload_preset', UPLOAD_PRESET);
+
+            try {
+                const cloudRes = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/auto/upload`, {
+                    method: 'POST',
+                    body: formData
+                });
+                const cloudData = await cloudRes.json();
+
+                if (!cloudData.secure_url) {
+                    alert('❌ خطا در آپلود فایل به فضای ابری. تنظیمات Cloudinary را بررسی کنید.');
+                    btn.innerText = "آپلود و انتشار در سایت";
+                    return;
+                }
+
+                const audioUrl = cloudData.secure_url;
+                btn.innerText = "در حال ثبت در گیت‌هاب...";
+
+                currentSessions.unshift({ title, src: audioUrl });
+                const success = await updateGitHub(currentSessions);
+
+                if (success) {
+                    document.getElementById('title').value = '';
+                    fileInput.value = '';
+                    alert('✅ صوت با موفقیت آپلود و منتشر شد!');
+                }
+            } catch (err) {
+                alert('❌ خطایی در ارتباط با سرور آپلود رخ داد.');
+            } finally {
+                btn.innerText = "آپلود و انتشار در سایت";
+            }
+        }
+
+        async function deleteSession(index) {
+            if (confirm('🗑️ آیا از حذف این فایل صوتی اطمینان دارید؟')) {
+                currentSessions.splice(index, 1);
+                const success = await updateGitHub(currentSessions);
+                if (success) {
+                    alert('✅ با موفقیت حذف شد.');
+                }
+            }
+        }
+
+        function renderAdminList() {
+            const container = document.getElementById('admin-list');
+            if (currentSessions.length === 0) {
+                container.innerHTML = "<p class='text-gray-500 text-xs text-center py-4'>هیچ فایلی وجود ندارد.</p>";
+                return;
+            }
+
+            container.innerHTML = currentSessions.map((s, i) => `
+                <div class="flex justify-between items-center bg-gray-950/80 border border-gray-800 p-3 rounded-xl">
+                    <span class="truncate text-sm text-gray-300 ml-3">${s.title}</span>
+                    <button onclick="deleteSession(${i})" class="bg-red-500/10 hover:bg-red-500/20 text-red-400 text-xs px-3 py-1.5 rounded-lg transition shrink-0 cursor-pointer">
+                        <i class="fa-solid fa-trash"></i> حذف
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        checkAuth();
+    </script>
+</body>
+=======
 <!DOCTYPE html>
 <html lang="fa" dir="rtl">
 <head>
@@ -214,4 +432,5 @@
         checkAuth();
     </script>
 </body>
+>>>>>>> f1826f4269c3026ff0849ab5e4ce2f962398b4a0
 </html>
