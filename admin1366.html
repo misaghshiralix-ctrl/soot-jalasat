@@ -3,294 +3,148 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>پنل مدیریت کافه سلامت</title>
+    <title>پنل مدیریت</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet" type="text/css" />
-    <style>
-        body {
-            font-family: 'Vazirmatn', sans-serif;
-            background-color: #0b0f19;
-            color: #f3f4f6;
-        }
-    </style>
+    <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet" />
+    <style>body { font-family: 'Vazirmatn', sans-serif; background-color: #0b0f19; color: #f3f4f6; }</style>
 </head>
-<body class="min-h-screen p-4 md:p-8 flex flex-col items-center justify-center">
+<body class="min-h-screen p-4 flex items-center justify-center">
 
-    <!-- صفحه ورود با رمز ثابت -->
-    <div id="loginScreen" class="w-full max-w-md bg-gray-900/90 backdrop-blur-md border border-gray-800 rounded-2xl p-6 shadow-2xl hidden">
-        <h1 class="text-lg font-bold text-center mb-2 flex items-center justify-center gap-2">
-            <span>🔐</span> ورود به پنل مدیریت کافه سلامت
-        </h1>
-        <p class="text-xs text-gray-400 text-center mb-6">لطفاً رمز عبور پنل را وارد کنید</p>
-        
+    <!-- صفحه ورود -->
+    <div id="loginScreen" class="w-full max-w-md bg-gray-900/90 border border-gray-800 rounded-2xl p-6 shadow-2xl">
+        <h1 class="text-xl font-bold text-center mb-6">پنل مدیریت</h1>
         <form onsubmit="handleLogin(event)" class="space-y-4">
-            <div>
-                <input type="password" id="panelPassword" required 
-                    placeholder="رمز عبور (1366)" 
-                    class="w-full bg-gray-950 border border-gray-800 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-indigo-500 transition-colors text-center tracking-widest">
-            </div>
-            <button type="submit" 
-                class="w-full py-3 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-medium text-sm rounded-xl transition-all shadow-lg shadow-indigo-600/20">
-                ورود به پنل
-            </button>
+            <input type="password" id="passInput" placeholder="رمز عبور" required class="w-full bg-black border border-gray-800 rounded-lg p-3 text-sm focus:border-indigo-500 outline-none">
+            <input type="password" id="tokenInput" placeholder="توکن گیت‌هاب (فقط بار اول)" class="w-full bg-black border border-gray-800 rounded-lg p-3 text-sm focus:border-indigo-500 outline-none hidden">
+            <button type="submit" class="w-full py-3 bg-indigo-600 hover:bg-indigo-500 rounded-xl font-bold transition-all">ورود</button>
         </form>
-        <div class="mt-4 text-center">
-            <a href="index.html" class="text-xs text-indigo-400 hover:text-indigo-300">← بازگشت به سایت اصلی</a>
-        </div>
     </div>
 
-    <!-- محتوای اصلی پنل ادمین -->
+    <!-- پنل ادمین -->
     <div id="adminPanel" class="w-full max-w-2xl space-y-6 hidden">
+        <div class="bg-gray-900 border border-gray-800 rounded-2xl p-6 flex justify-between items-center">
+            <h1 class="font-bold">مدیریت جلسات</h1>
+            <button onclick="location.reload()" class="text-xs text-gray-500 hover:text-gray-300">خروج</button>
+        </div>
         
-        <!-- هدر پنل -->
-        <div class="bg-gray-900/80 backdrop-blur-md border border-gray-800 rounded-2xl p-6 shadow-2xl flex justify-between items-center">
-            <h1 class="text-lg font-bold flex items-center gap-2">
-                <span>🛡️</span> پنل مدیریت کافه سلامت
-            </h1>
-            <div class="flex items-center gap-4">
-                <button onclick="logout()" class="text-xs text-red-400 hover:text-red-300 transition-colors">خروج</button>
-                <a href="index.html" class="text-sm text-indigo-400 hover:text-indigo-300 flex items-center gap-1 transition-colors">
-                    <span>مشاهده سایت</span> ⬅
-                </a>
-            </div>
-        </div>
-
-        <!-- فرم آپلود صوت جدید -->
-        <div class="bg-gray-900/80 backdrop-blur-md border border-gray-800 rounded-2xl p-6 shadow-2xl">
-            <h2 class="text-sm font-semibold text-indigo-400 mb-4 flex items-center gap-2">
-                <span>➕</span> آپلود جلسه جدید
-            </h2>
-
+        <div class="bg-gray-900 border border-gray-800 rounded-2xl p-6">
             <form id="uploadForm" onsubmit="handleUpload(event)" class="space-y-4">
-                <div>
-                    <label class="block text-xs text-gray-400 mb-1.5">عنوان جلسه</label>
-                    <input type="text" id="sessionTitle" required 
-                        placeholder="مثال: جلسه اول - مقدمه" 
-                        class="w-full bg-gray-950 border border-gray-800 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-500 transition-colors">
-                </div>
-
-                <div>
-                    <label class="block text-xs text-gray-400 mb-1.5">انتخاب فایل صوتی (MP3)</label>
-                    <input type="file" id="audioFile" accept="audio/mp3,audio/*" required
-                        class="w-full text-xs text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-indigo-600 file:text-white hover:file:bg-indigo-500 file:cursor-pointer cursor-pointer bg-gray-950 border border-gray-800 rounded-lg">
-                </div>
-
-                <button type="submit" id="submitBtn" 
-                    class="w-full py-3 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-medium text-sm rounded-xl transition-all shadow-lg shadow-indigo-600/20">
-                    آپلود و انتشار در سایت
-                </button>
+                <input type="text" id="sessionTitle" placeholder="عنوان جلسه" required class="w-full bg-black border border-gray-800 rounded-lg p-3 text-sm outline-none">
+                <input type="file" id="audioFile" accept="audio/*" required class="w-full text-sm text-gray-400 file:bg-gray-800 file:border-0 file:px-4 file:py-2 file:rounded-lg">
+                <button type="submit" id="submitBtn" class="w-full py-3 bg-indigo-600 hover:bg-indigo-500 rounded-xl font-bold transition-all">آپلود و انتشار</button>
             </form>
-            <p id="statusMessage" class="text-xs text-center text-gray-400 mt-4"></p>
+            <p id="status" class="text-xs text-center mt-4 text-gray-400"></p>
         </div>
-
-        <!-- مدیریت جلسات موجود -->
-        <div class="bg-gray-900/80 backdrop-blur-md border border-gray-800 rounded-2xl p-6 shadow-2xl">
-            <h2 class="text-sm font-semibold text-indigo-400 mb-4 flex items-center gap-2">
-                <span>🎧</span> مدیریت و حذف جلسات
-            </h2>
-            <div id="adminSessionsList" class="space-y-3">
-                <p class="text-xs text-gray-500 text-center py-4">در حال بارگذاری...</p>
-            </div>
-        </div>
-
     </div>
 
     <script>
         const owner = "misaghshiralix-ctrl";
         const repo = "soot-jalasat";
         const filePath = "sessions.json";
-        
-        // رمز ثابت ورود به پنل
-        const MY_PANEL_PASSWORD = "1366";
+        const PASS = "1366";
 
-        // توکن ثابت گیت‌هاب (توکن خود را اینجا قرار دهید)
-        const GITHUB_TOKEN = "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"; // توکن اصلی گیت‌هاب خود را بین دابل‌کوتشن قرار دهید
-
-        function checkAuth() {
-            const isAuth = localStorage.getItem("panel_auth");
-            
-            if (isAuth !== "true") {
-                document.getElementById("loginScreen").classList.remove("hidden");
-                document.getElementById("adminPanel").classList.add("hidden");
-            } else {
-                document.getElementById("loginScreen").classList.add("hidden");
-                document.getElementById("adminPanel").classList.remove("hidden");
-                loadAdminSessions();
+        window.onload = () => {
+            if (!localStorage.getItem("github_token")) {
+                document.getElementById("tokenInput").classList.remove("hidden");
+                document.getElementById("tokenInput").required = true;
             }
-        }
+        };
 
         function handleLogin(event) {
             event.preventDefault();
-            const pass = document.getElementById("panelPassword").value;
-
-            if (pass !== MY_PANEL_PASSWORD) {
-                alert("رمز عبور اشتباه است! ");
+            if (document.getElementById("passInput").value !== PASS) {
+                alert("رمز اشتباه است");
                 return;
             }
-
-            localStorage.setItem("panel_auth", "true");
-            checkAuth();
-        }
-
-        function logout() {
-            localStorage.removeItem("panel_auth");
-            checkAuth();
-        }
-
-        async function callGitHubAPI(url, method = "GET", bodyData = null) {
-            if (!GITHUB_TOKEN || GITHUB_TOKEN === "TO_BE_PLACED_HERE") {
-                throw new Error("توکن گیت‌هاب در کد تنظیم نشده است.");
+            
+            const tokenInput = document.getElementById("tokenInput");
+            if (tokenInput.value.trim() !== "") {
+                localStorage.setItem("github_token", tokenInput.value.trim());
             }
-
-            const headers = {
-                "Authorization": `token ${GITHUB_TOKEN}`,
-                "Accept": "application/vnd.github.v3+json",
-                "Content-Type": "application/json"
-            };
-
-            const options = { method, headers };
-            if (bodyData) options.body = JSON.stringify(bodyData);
-
-            const response = await fetch(url, options);
-            if (response.status === 401) {
-                throw new Error("توکن گیت‌هاب نامعتبر یا منقضی شده است (401).");
-            }
-            return response;
-        }
-
-        async function loadAdminSessions() {
-            const container = document.getElementById("adminSessionsList");
-            try {
-                const apiUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${filePath}`;
-                const res = await callGitHubAPI(apiUrl, "GET");
-                if (!res.ok) throw new Error("فایل جلسات یافت نشد.");
-
-                const data = await res.json();
-                const sessions = JSON.parse(decodeURIComponent(escape(atob(data.content))));
-
-                if (sessions.length === 0) {
-                    container.innerHTML = `<p class="text-xs text-gray-500 text-center py-4">هیچ جلسه‌ای ثبت نشده است.</p>`;
-                    return;
-                }
-
-                container.innerHTML = "";
-                sessions.forEach((session, index) => {
-                    container.innerHTML += `
-                        <div class="bg-gray-950/60 border border-gray-800/80 rounded-xl p-4 flex flex-col gap-3">
-                            <div class="flex justify-between items-center">
-                                <span class="text-sm font-medium text-gray-200">${session.title}</span>
-                                <button onclick="deleteSession(${index})" class="text-xs text-red-400 hover:text-red-300 bg-red-500/10 px-2.5 py-1 rounded-lg transition-colors">حذف</button>
-                            </div>
-                            <audio controls class="w-full h-9">
-                                <source src="${session.url}" type="audio/mpeg">
-                            </audio>
-                        </div>
-                    `;
-                });
-            } catch (error) {
-                container.innerHTML = `<p class="text-xs text-red-400 text-center py-4">خطا: ${error.message}</p>`;
-            }
+            
+            document.getElementById("loginScreen").classList.add("hidden");
+            document.getElementById("adminPanel").classList.remove("hidden");
         }
 
         async function handleUpload(event) {
             event.preventDefault();
-            const titleInput = document.getElementById("sessionTitle").value;
-            const fileInput = document.getElementById("audioFile").files[0];
-            const statusMsg = document.getElementById("statusMessage");
-            const submitBtn = document.getElementById("submitBtn");
+            const title = document.getElementById("sessionTitle").value;
+            const file = document.getElementById("audioFile").files[0];
+            const btn = document.getElementById("submitBtn");
+            const status = document.getElementById("status");
 
-            if (!fileInput) return;
-
-            submitBtn.disabled = true;
-            statusMsg.textContent = "در حال آپلود صوت و ثبت در گیت‌هاب...";
+            btn.disabled = true;
+            status.textContent = "در حال بررسی فایل‌ها...";
 
             try {
-                const apiUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${filePath}`;
-                let sessionsList = [];
-                let fileSha = "";
+                const token = localStorage.getItem("github_token");
+                let list = [];
+                let fileSha = null;
 
-                const getRes = await callGitHubAPI(apiUrl, "GET");
-                if (getRes.ok) {
-                    const data = await getRes.json();
+                // چک کردن وجود فایل sessions.json در گیت‌هاب
+                const res = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${filePath}`, {
+                    headers: { "Authorization": `token ${token}` }
+                });
+
+                if (res.ok) {
+                    const data = await res.json();
                     fileSha = data.sha;
-                    sessionsList = JSON.parse(decodeURIComponent(escape(atob(data.content))));
+                    if (data.content && data.content.trim() !== "") {
+                        try {
+                            const decoded = decodeURIComponent(escape(atob(data.content.replace(/\s/g, ''))));
+                            list = JSON.parse(decoded);
+                        } catch (e) {
+                            list = [];
+                        }
+                    }
                 }
 
-                const audioFileName = `audios/${Date.now()}_${fileInput.name}`;
-                const audioApiUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${audioFileName}`;
-                
-                const base64Audio = await new Promise((resolve) => {
-                    const reader = new FileReader();
-                    reader.onload = () => resolve(reader.result.split(',')[1]);
-                    reader.readAsDataURL(fileInput);
-                });
+                status.textContent = "در حال آپلود فایل صوتی...";
 
-                const audioRes = await callGitHubAPI(audioApiUrl, "PUT", {
-                    message: `Upload audio: ${titleInput}`,
-                    content: base64Audio
-                });
+                // 1. آپلود فایل صوتی
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = async () => {
+                    const base64 = reader.result.split(',')[1];
+                    const fileName = `audios/${Date.now()}_${file.name}`;
+                    
+                    const audioRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${fileName}`, {
+                        method: "PUT",
+                        headers: { "Authorization": `token ${token}`, "Content-Type": "application/json" },
+                        body: JSON.stringify({ message: "upload audio", content: base64 })
+                    });
+                    
+                    if (!audioRes.ok) throw new Error("خطا در آپلود فایل صوتی");
+                    const audioData = await audioRes.json();
+                    
+                    list.push({ title: title, url: audioData.content.download_url });
 
-                if (!audioRes.ok) throw new Error("خطا در آپلود فایل صوتی.");
-                const audioDataJson = await audioRes.json();
+                    status.textContent = "در حال ثبت نهایی...";
 
-                sessionsList.push({
-                    title: titleInput,
-                    url: audioDataJson.content.download_url,
-                    date: new Date().toISOString()
-                });
+                    // 2. ساخت یا آپدیت فایل sessions.json
+                    const updateBody = {
+                        message: "update sessions list",
+                        content: btoa(unescape(encodeURIComponent(JSON.stringify(list, null, 2))))
+                    };
+                    if (fileSha) updateBody.sha = fileSha;
 
-                const updateRes = await callGitHubAPI(apiUrl, "PUT", {
-                    message: `Add session: ${titleInput}`,
-                    content: btoa(unescape(encodeURIComponent(JSON.stringify(sessionsList, null, 2)))),
-                    sha: fileSha
-                });
+                    const updateRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${filePath}`, {
+                        method: "PUT",
+                        headers: { "Authorization": `token ${token}`, "Content-Type": "application/json" },
+                        body: JSON.stringify(updateBody)
+                    });
 
-                if (updateRes.ok) {
-                    statusMsg.textContent = "✅ با موفقیت منتشر شد و سایت آپدیت شد!";
+                    if (!updateRes.ok) throw new Error("خطا در ثبت لیست جلسات");
+
+                    status.textContent = "✅ با موفقیت منتشر شد!";
+                    btn.disabled = false;
                     document.getElementById("uploadForm").reset();
-                    loadAdminSessions();
-                } else {
-                    throw new Error("خطا در ثبت لیست.");
-                }
-
-            } catch (error) {
-                statusMsg.textContent = "❌ " + error.message;
-            } finally {
-                submitBtn.disabled = false;
+                };
+            } catch (err) {
+                status.textContent = "❌ خطا: " + err.message;
+                btn.disabled = false;
             }
         }
-
-        async function deleteSession(index) {
-            if (!confirm("آیا از حذف این جلسه مطمئن هستید؟")) return;
-
-            try {
-                const apiUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${filePath}`;
-                const res = await callGitHubAPI(apiUrl, "GET");
-                if (!res.ok) throw new Error("خطا در خواندن اطلاعات.");
-
-                const data = await res.json();
-                let sessionsList = JSON.parse(decodeURIComponent(escape(atob(data.content))));
-                
-                sessionsList.splice(index, 1);
-
-                const updateRes = await callGitHubAPI(apiUrl, "PUT", {
-                    message: "Delete session",
-                    content: btoa(unescape(encodeURIComponent(JSON.stringify(sessionsList, null, 2)))),
-                    sha: data.sha
-                });
-
-                if (updateRes.ok) {
-                    alert("جلسه حذف شد.");
-                    loadAdminSessions();
-                } else {
-                    throw new Error("خطا در ذخیره تغییرات.");
-                }
-            } catch (error) {
-                alert("خطا: " + error.message);
-            }
-        }
-
-        window.onload = checkAuth;
     </script>
 </body>
 </html>
