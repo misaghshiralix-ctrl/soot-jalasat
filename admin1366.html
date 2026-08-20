@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>پنل مدیریت</title>
+    <title>پنل مدیریت کافه سلامت</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet" type="text/css" />
     <style>
@@ -14,24 +14,56 @@
         }
     </style>
 </head>
-<body class="min-h-screen p-4 md:p-8 flex flex-col items-center">
+<body class="min-h-screen p-4 md:p-8 flex flex-col items-center justify-center">
 
-    <div class="w-full max-w-2xl space-y-6">
+    <!-- صفحه ورود (رمز عبور + توکن گیت‌هاب) -->
+    <div id="loginScreen" class="w-full max-w-md bg-gray-900/90 backdrop-blur-md border border-gray-800 rounded-2xl p-6 shadow-2xl hidden">
+        <h1 class="text-lg font-bold text-center mb-2 flex items-center justify-center gap-2">
+            <span>🔐</span> ورود به پنل مدیریت
+        </h1>
+        <p class="text-xs text-gray-400 text-center mb-6">لطفاً رمز عبور پنل و توکن گیت‌هاب خود را وارد کنید</p>
         
-        <!-- هدر پنل -->
+        <form onsubmit="handleLogin(event)" class="space-y-4">
+            <div>
+                <label class="block text-xs text-gray-400 mb-1.5">رمز عبور پنل (مثلاً 1366)</label>
+                <input type="password" id="panelPassword" required 
+                    placeholder="رمز عبور دلخواه..." 
+                    class="w-full bg-gray-950 border border-gray-800 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-500 transition-colors">
+            </div>
+
+            <div>
+                <label class="block text-xs text-gray-400 mb-1.5">توکن گیت‌هاب (GitHub Token)</label>
+                <input type="password" id="tokenInput" required 
+                    placeholder="ghp_... یا github_pat_..." 
+                    class="w-full bg-gray-950 border border-gray-800 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-500 transition-colors">
+            </div>
+
+            <button type="submit" 
+                class="w-full py-3 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-medium text-sm rounded-xl transition-all shadow-lg shadow-indigo-600/20">
+                ورود به پنل
+            </button>
+        </form>
+        <div class="mt-4 text-center">
+            <a href="index.html" class="text-xs text-indigo-400 hover:text-indigo-300">← بازگشت به سایت اصلی</a>
+        </div>
+    </div>
+
+    <!-- محتوای اصلی پنل ادمین -->
+    <div id="adminPanel" class="w-full max-w-2xl space-y-6 hidden">
+        
         <div class="bg-gray-900/80 backdrop-blur-md border border-gray-800 rounded-2xl p-6 shadow-2xl flex justify-between items-center">
             <h1 class="text-lg font-bold flex items-center gap-2">
                 <span>🛡️</span> پنل مدیریت کافه سلامت
             </h1>
             <div class="flex items-center gap-4">
-                <button onclick="resetToken()" class="text-xs text-red-400 hover:text-red-300 transition-colors">تغییر توکن</button>
+                <button onclick="logout()" class="text-xs text-red-400 hover:text-red-300 transition-colors">خروج</button>
                 <a href="index.html" class="text-sm text-indigo-400 hover:text-indigo-300 flex items-center gap-1 transition-colors">
                     <span>مشاهده سایت</span> ⬅
                 </a>
             </div>
         </div>
 
-        <!-- فرم آپلود صوت جدید -->
+        <!-- آپلود صوت -->
         <div class="bg-gray-900/80 backdrop-blur-md border border-gray-800 rounded-2xl p-6 shadow-2xl">
             <h2 class="text-sm font-semibold text-indigo-400 mb-4 flex items-center gap-2">
                 <span>➕</span> آپلود جلسه جدید
@@ -59,7 +91,7 @@
             <p id="statusMessage" class="text-xs text-center text-gray-400 mt-4"></p>
         </div>
 
-        <!-- مدیریت جلسات موجود -->
+        <!-- مدیریت جلسات -->
         <div class="bg-gray-900/80 backdrop-blur-md border border-gray-800 rounded-2xl p-6 shadow-2xl">
             <h2 class="text-sm font-semibold text-indigo-400 mb-4 flex items-center gap-2">
                 <span>🎧</span> مدیریت و حذف جلسات
@@ -75,32 +107,54 @@
         const owner = "misaghshiralix-ctrl";
         const repo = "soot-jalasat";
         const filePath = "sessions.json";
+        
+        // رمز عبوری که برای ورود به پنل تعیین می‌کنید (می‌توانید تغییرش دهید)
+        const MY_PANEL_PASSWORD = "1366";
 
-        // این تابع به محض لود شدن یا نیاز، حتماً از طریق prompt توکن را می‌پرسد
-        function getGitHubToken() {
-            let token = localStorage.getItem("github_token");
-            if (!token || token === "null" || token === "undefined") {
-                token = prompt("لطفاً توکن دسترسی گیت‌هاب (API Token) خود را وارد کنید:");
-                if (token && token.trim() !== "") {
-                    localStorage.setItem("github_token", token.trim());
-                    return token.trim();
-                } else {
-                    alert("وارد کردن توکن برای کار با پنل الزامی است!");
-                    return null;
-                }
+        function checkAuth() {
+            const isAuth = localStorage.getItem("panel_auth");
+            const token = localStorage.getItem("github_token");
+            
+            if (isAuth !== "true" || !token) {
+                document.getElementById("loginScreen").classList.remove("hidden");
+                document.getElementById("adminPanel").classList.add("hidden");
+            } else {
+                document.getElementById("loginScreen").classList.add("hidden");
+                document.getElementById("adminPanel").classList.remove("hidden");
+                loadAdminSessions();
             }
-            return token;
         }
 
-        function resetToken() {
+        function handleLogin(event) {
+            event.preventDefault();
+            const pass = document.getElementById("panelPassword").value;
+            const token = document.getElementById("tokenInput").value.trim();
+
+            if (pass !== MY_PANEL_PASSWORD) {
+                alert("رمز عبور پنل اشتباه است!");
+                return;
+            }
+
+            if (token) {
+                localStorage.setItem("panel_auth", "true");
+                localStorage.setItem("github_token", token);
+                checkAuth();
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem("panel_auth");
             localStorage.removeItem("github_token");
-            alert("توکن پاک شد. صفحه مجدداً بارگذاری می‌شود تا توکن جدید وارد کنید.");
-            location.reload();
+            checkAuth();
+        }
+
+        function getGitHubToken() {
+            return localStorage.getItem("github_token");
         }
 
         async function callGitHubAPI(url, method = "GET", bodyData = null) {
             const token = getGitHubToken();
-            if (!token) throw new Error("توکن گیت‌هاب وارد نشده است.");
+            if (!token) throw new Error("توکن وارد نشده است.");
 
             const headers = {
                 "Authorization": `token ${token}`,
@@ -113,8 +167,8 @@
 
             const response = await fetch(url, options);
             if (response.status === 401) {
-                localStorage.removeItem("github_token");
-                throw new Error("توکن نامعتبر یا منقضی شده است (401). لطفاً دوباره توکن وارد کنید.");
+                logout();
+                throw new Error("توکن گیت‌هاب نامعتبر یا منقضی شده است (401).");
             }
             return response;
         }
@@ -251,11 +305,7 @@
             }
         }
 
-        // به محض باز شدن صفحه، برای گرفتن لیست، توکن پرسیده می‌شود
-        window.onload = function() {
-            getGitHubToken();
-            loadAdminSessions();
-        };
+        window.onload = checkAuth;
     </script>
 </body>
 </html>
