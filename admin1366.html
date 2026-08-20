@@ -16,28 +16,19 @@
 </head>
 <body class="min-h-screen p-4 md:p-8 flex flex-col items-center justify-center">
 
-    <!-- صفحه ورود (رمز عبور + توکن گیت‌هاب) -->
+    <!-- صفحه ورود با رمز ثابت -->
     <div id="loginScreen" class="w-full max-w-md bg-gray-900/90 backdrop-blur-md border border-gray-800 rounded-2xl p-6 shadow-2xl hidden">
         <h1 class="text-lg font-bold text-center mb-2 flex items-center justify-center gap-2">
-            <span>🔐</span> ورود به پنل مدیریت
+            <span>🔐</span> ورود به پنل مدیریت کافه سلامت
         </h1>
-        <p class="text-xs text-gray-400 text-center mb-6">لطفاً رمز عبور پنل و توکن گیت‌هاب خود را وارد کنید</p>
+        <p class="text-xs text-gray-400 text-center mb-6">لطفاً رمز عبور پنل را وارد کنید</p>
         
         <form onsubmit="handleLogin(event)" class="space-y-4">
             <div>
-                <label class="block text-xs text-gray-400 mb-1.5">رمز عبور پنل (مثلاً 1366)</label>
                 <input type="password" id="panelPassword" required 
-                    placeholder="رمز عبور دلخواه..." 
-                    class="w-full bg-gray-950 border border-gray-800 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-500 transition-colors">
+                    placeholder="رمز عبور (1366)" 
+                    class="w-full bg-gray-950 border border-gray-800 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-indigo-500 transition-colors text-center tracking-widest">
             </div>
-
-            <div>
-                <label class="block text-xs text-gray-400 mb-1.5">توکن گیت‌هاب (GitHub Token)</label>
-                <input type="password" id="tokenInput" required 
-                    placeholder="ghp_... یا github_pat_..." 
-                    class="w-full bg-gray-950 border border-gray-800 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-500 transition-colors">
-            </div>
-
             <button type="submit" 
                 class="w-full py-3 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-medium text-sm rounded-xl transition-all shadow-lg shadow-indigo-600/20">
                 ورود به پنل
@@ -51,6 +42,7 @@
     <!-- محتوای اصلی پنل ادمین -->
     <div id="adminPanel" class="w-full max-w-2xl space-y-6 hidden">
         
+        <!-- هدر پنل -->
         <div class="bg-gray-900/80 backdrop-blur-md border border-gray-800 rounded-2xl p-6 shadow-2xl flex justify-between items-center">
             <h1 class="text-lg font-bold flex items-center gap-2">
                 <span>🛡️</span> پنل مدیریت کافه سلامت
@@ -63,7 +55,7 @@
             </div>
         </div>
 
-        <!-- آپلود صوت -->
+        <!-- فرم آپلود صوت جدید -->
         <div class="bg-gray-900/80 backdrop-blur-md border border-gray-800 rounded-2xl p-6 shadow-2xl">
             <h2 class="text-sm font-semibold text-indigo-400 mb-4 flex items-center gap-2">
                 <span>➕</span> آپلود جلسه جدید
@@ -91,7 +83,7 @@
             <p id="statusMessage" class="text-xs text-center text-gray-400 mt-4"></p>
         </div>
 
-        <!-- مدیریت جلسات -->
+        <!-- مدیریت جلسات موجود -->
         <div class="bg-gray-900/80 backdrop-blur-md border border-gray-800 rounded-2xl p-6 shadow-2xl">
             <h2 class="text-sm font-semibold text-indigo-400 mb-4 flex items-center gap-2">
                 <span>🎧</span> مدیریت و حذف جلسات
@@ -108,14 +100,16 @@
         const repo = "soot-jalasat";
         const filePath = "sessions.json";
         
-        // رمز عبوری که برای ورود به پنل تعیین می‌کنید (می‌توانید تغییرش دهید)
+        // رمز ثابت ورود به پنل
         const MY_PANEL_PASSWORD = "1366";
+
+        // توکن ثابت گیت‌هاب (توکن خود را اینجا قرار دهید)
+        const GITHUB_TOKEN = "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"; // توکن اصلی گیت‌هاب خود را بین دابل‌کوتشن قرار دهید
 
         function checkAuth() {
             const isAuth = localStorage.getItem("panel_auth");
-            const token = localStorage.getItem("github_token");
             
-            if (isAuth !== "true" || !token) {
+            if (isAuth !== "true") {
                 document.getElementById("loginScreen").classList.remove("hidden");
                 document.getElementById("adminPanel").classList.add("hidden");
             } else {
@@ -128,36 +122,28 @@
         function handleLogin(event) {
             event.preventDefault();
             const pass = document.getElementById("panelPassword").value;
-            const token = document.getElementById("tokenInput").value.trim();
 
             if (pass !== MY_PANEL_PASSWORD) {
-                alert("رمز عبور پنل اشتباه است!");
+                alert("رمز عبور اشتباه است! ");
                 return;
             }
 
-            if (token) {
-                localStorage.setItem("panel_auth", "true");
-                localStorage.setItem("github_token", token);
-                checkAuth();
-            }
+            localStorage.setItem("panel_auth", "true");
+            checkAuth();
         }
 
         function logout() {
             localStorage.removeItem("panel_auth");
-            localStorage.removeItem("github_token");
             checkAuth();
         }
 
-        function getGitHubToken() {
-            return localStorage.getItem("github_token");
-        }
-
         async function callGitHubAPI(url, method = "GET", bodyData = null) {
-            const token = getGitHubToken();
-            if (!token) throw new Error("توکن وارد نشده است.");
+            if (!GITHUB_TOKEN || GITHUB_TOKEN === "TO_BE_PLACED_HERE") {
+                throw new Error("توکن گیت‌هاب در کد تنظیم نشده است.");
+            }
 
             const headers = {
-                "Authorization": `token ${token}`,
+                "Authorization": `token ${GITHUB_TOKEN}`,
                 "Accept": "application/vnd.github.v3+json",
                 "Content-Type": "application/json"
             };
@@ -167,7 +153,6 @@
 
             const response = await fetch(url, options);
             if (response.status === 401) {
-                logout();
                 throw new Error("توکن گیت‌هاب نامعتبر یا منقضی شده است (401).");
             }
             return response;
@@ -261,7 +246,7 @@
                 });
 
                 if (updateRes.ok) {
-                    statusMsg.textContent = "✅ با موفقیت منتشر شد!";
+                    statusMsg.textContent = "✅ با موفقیت منتشر شد و سایت آپدیت شد!";
                     document.getElementById("uploadForm").reset();
                     loadAdminSessions();
                 } else {
