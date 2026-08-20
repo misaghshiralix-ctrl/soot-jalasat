@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>پنل مدیریت کافه سلامت</title>
+    <title>پنل مدیریت </title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;700&display=swap" rel="stylesheet">
@@ -60,8 +60,8 @@
 
     <script>
         // === تنظیمات گیت‌هاب (توکن شما از قبل ثبت شده است) ===
-        const GITHUB_USER = "YOUR_GITHUB_USERNAME";     // نام کاربری گیت‌هاب خود را اینجا وارد کنید
-        const GITHUB_REPO = "YOUR_REPO_NAME";         // نام ریپازیتوری خود را اینجا وارد کنید
+        const GITHUB_USER = "misaghshiralix-ctrl";     // نام کاربری گیت‌هاب خود را اینجا وارد کنید
+        const GITHUB_REPO = "soot-jalasat";         // نام ریپازیتوری خود را اینجا وارد کنید
         const GITHUB_TOKEN = "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"; 
         const ADMIN_PASSWORD = "1366";                // رمز عبور پنل ادمین
         // ====================================================
@@ -70,7 +70,7 @@
         let fileSha = "";
 
         function checkAuth() {
-            const enteredPass = prompt("🔐 لطفاً رمز عبور پنل ادمین را وارد کنید (1366):");
+            const enteredPass = prompt("🔐 لطفاً رمز عبور پنل ادمین را وارد کنید:");
             if (enteredPass === ADMIN_PASSWORD) {
                 document.getElementById('admin-panel').classList.remove('hidden');
                 fetchSessions();
