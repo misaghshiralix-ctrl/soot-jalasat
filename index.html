@@ -3,97 +3,99 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>آرشیو صوت جلسات</title>
+    <title>پادکست کافه سلامت</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet" type="text/css" />
     <style>
-        body { font-family: 'Vazirmatn', sans-serif; }
-        .glass { background: rgba(17, 24, 39, 0.75); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.08); }
-        .glow { box-shadow: 0 0 40px -10px rgba(99, 102, 241, 0.2); }
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: rgba(0,0,0,0.1); }
-        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 4px; }
+        body {
+            font-family: 'Vazirmatn', sans-serif;
+            background-color: #0b0f19;
+            color: #f3f4f6;
+        }
     </style>
 </head>
-<body class="bg-gradient-to-br from-gray-950 via-gray-900 to-indigo-950 text-gray-100 min-h-screen flex flex-col items-center p-4 md:p-8">
+<body class="min-h-screen p-4 md:p-8 flex flex-col items-center">
 
     <div class="w-full max-w-2xl space-y-6">
-        <header class="glass p-6 rounded-3xl glow flex items-center justify-between relative overflow-hidden">
-            <div class="absolute -left-10 -top-10 w-32 h-32 bg-indigo-500/10 rounded-full blur-2xl pointer-events-none"></div>
-            <div>
-                <span class="text-xs font-semibold tracking-wider text-indigo-400 uppercase">پلتفرم پخش صوت</span>
-                <h1 class="text-2xl font-bold mt-1 bg-gradient-to-r from-white via-indigo-200 to-indigo-400 bg-clip-text text-transparent">آرشیو جلسات صوتی</h1>
-            </div>
-            <div class="w-12 h-12 rounded-2xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400 shadow-inner">
-                <i class="fa-solid fa-headphones text-xl"></i>
-            </div>
-        </header>
+        
+        <!-- هدر سایت -->
+        <div class="bg-gray-900/85 backdrop-blur-md border border-gray-800 rounded-2xl p-6 shadow-2xl text-center relative">
+            <h1 class="text-2xl font-bold bg-gradient-to-r from-indigo-400 to-violet-400 bg-clip-text text-transparent mb-2">
+                🎙️ پادکست کافه سلامت
+            </h1>
+            <p class="text-xs text-gray-400">مجموعه جلسات و مباحث تخصصی</p>
+            
+            <a href="admin1366.html" class="absolute top-4 left-4 text-xs text-gray-500 hover:text-indigo-400 transition-colors">
+                ⚙️ ادمین
+            </a>
+        </div>
 
-        <div class="glass p-6 rounded-3xl space-y-4 shadow-2xl">
-            <div class="flex items-center justify-between border-b border-gray-800 pb-4">
-                <h2 class="font-bold text-lg flex items-center gap-2">
-                    <i class="fa-solid fa-list-check text-indigo-400"></i>
-                    فهرست فایل‌های بارگذاری شده
-                </h2>
-                <span id="session-count" class="text-xs bg-indigo-500/10 text-indigo-400 px-3 py-1 rounded-full border border-indigo-500/20">۰ فایل</span>
-            </div>
-
-            <div id="sessions-list" class="space-y-4">
-                <div class="text-center py-12 text-gray-400 text-sm">در حال بارگذاری...</div>
+        <!-- لیست جلسات -->
+        <div id="sessionsContainer" class="space-y-4">
+            <div class="bg-gray-900/80 border border-gray-800 rounded-2xl p-6 text-center text-gray-500 text-sm">
+                در حال بارگذاری جلسات...
             </div>
         </div>
+
     </div>
 
     <script>
-        async function loadSessions() {
-            const container = document.getElementById('sessions-list');
-            try {
-                const response = await fetch('sessions.json?' + new Date().getTime());
-                const sessions = await response.json();
-                
-                document.getElementById('session-count').innerText = `${sessions.length} فایل`;
+        const owner = "misaghshiralix-ctrl";
+        const repo = "soot-jalasat";
+        const filePath = "sessions.json";
 
-                if (sessions.length === 0) {
+        async function loadPublicSessions() {
+            const container = document.getElementById("sessionsContainer");
+            try {
+                // خواندن مستقیم از گیت‌هاب (یا فایل خام)
+                const url = `https://raw.githubusercontent.com/${owner}/${repo}/main/${filePath}?t=${Date.now()}`;
+                const res = await fetch(url);
+                
+                if (!res.ok) throw new Error("فایل جلسات یافت نشد.");
+
+                const sessions = await res.json();
+
+                if (!sessions || sessions.length === 0) {
                     container.innerHTML = `
-                        <div class="text-center py-12 space-y-3">
-                            <div class="w-16 h-16 bg-gray-900 border border-gray-800 rounded-full flex items-center justify-center mx-auto text-gray-600 text-xl">
-                                <i class="fa-solid fa-folder-open"></i>
-                            </div>
-                            <p class="text-gray-400 text-sm">هنوز هیچ جلسه‌ای بارگذاری نشده است.</p>
+                        <div class="bg-gray-900/80 border border-gray-800 rounded-2xl p-6 text-center text-gray-400 text-sm">
+                            هنوز جلسه‌ای منتشر نشده است.
                         </div>`;
                     return;
                 }
 
-                container.innerHTML = sessions.map(s => `
-                    <div class="bg-gray-900/60 hover:bg-gray-900 border border-gray-800/80 hover:border-indigo-500/40 p-5 rounded-2xl transition duration-300 space-y-4 group">
-                        <div class="flex items-center justify-between">
-                            <div class="flex items-center gap-3 overflow-hidden">
-                                <div class="w-10 h-10 rounded-xl bg-indigo-600/10 text-indigo-400 flex items-center justify-center shrink-0 group-hover:scale-105 transition">
-                                    <i class="fa-solid fa-microphone-lines"></i>
-                                </div>
-                                <h3 class="font-semibold text-gray-200 text-base truncate">${s.title}</h3>
+                container.innerHTML = "";
+                // نمایش از جدیدترین به قدیمی‌ترین
+                sessions.slice().reverse().forEach((session) => {
+                    container.innerHTML += `
+                        <div class="bg-gray-900/80 backdrop-blur-md border border-gray-800 rounded-2xl p-5 shadow-xl flex flex-col gap-4">
+                            <div class="flex justify-between items-center">
+                                <h2 class="text-sm font-semibold text-gray-200">${session.title}</h2>
+                                <span class="text-[10px] text-gray-500">${new Date(session.date).toLocaleDateString('fa-IR')}</span>
                             </div>
-                            <!-- دکمه دانلود -->
-                            <a href="${s.src}" download target="_blank" class="bg-indigo-600/20 hover:bg-indigo-600 text-indigo-300 hover:text-white px-3.5 py-2 rounded-xl text-xs font-medium transition flex items-center gap-2 shrink-0 border border-indigo-500/30">
-                                <i class="fa-solid fa-download"></i>
-                                <span class="hidden sm:inline">دانلود</span>
-                            </a>
-                        </div>
-                        
-                        <div class="w-full bg-gray-950/60 p-2 rounded-xl border border-gray-800">
-                            <audio controls class="w-full accent-indigo-500">
-                                <source src="${s.src}" type="audio/mpeg">
+                            
+                            <audio controls class="w-full h-10 accent-indigo-500">
+                                <source src="${session.url}" type="audio/mpeg">
                                 مرورگر شما از پخش صوت پشتیبانی نمی‌کند.
                             </audio>
+
+                            <div class="flex justify-end">
+                                <a href="${session.url}" download class="text-xs text-indigo-400 hover:text-indigo-300 flex items-center gap-1 transition-colors bg-indigo-500/10 px-3 py-1.5 rounded-lg">
+                                    📥 دانلود صوت
+                                </a>
+                            </div>
                         </div>
-                    </div>
-                `).join('');
+                    `;
+                });
+
             } catch (error) {
-                container.innerHTML = `<p class='text-red-400 text-center text-sm'>خطا در بارگذاری اطلاعات.</p>`;
+                container.innerHTML = `
+                    <div class="bg-gray-900/80 border border-gray-800 rounded-2xl p-6 text-center text-red-400 text-sm">
+                        خطا در بارگذاری جلسات سایت.
+                    </div>`;
             }
         }
-        loadSessions();
+
+        window.onload = loadPublicSessions;
     </script>
 </body>
 </html>

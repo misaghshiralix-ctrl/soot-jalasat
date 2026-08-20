@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>پنل مدیریت کافه سلامت</title>
+<title>پنل مدیریت</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet" type="text/css" />
     <style>
@@ -14,24 +14,27 @@
         }
     </style>
 </head>
-<body class="min-h-screen flex items-center justify-center p-4">
+<body class="min-h-screen p-4 md:p-8 flex flex-col items-center">
 
-    <div class="bg-gray-900/80 backdrop-blur-md border border-gray-800 rounded-2xl p-6 w-full max-w-lg shadow-2xl relative">
+    <div class="w-full max-w-2xl space-y-6">
         
         <!-- هدر پنل -->
-        <div class="flex justify-between items-center mb-6 pb-4 border-b border-gray-800">
+        <div class="bg-gray-900/80 backdrop-blur-md border border-gray-800 rounded-2xl p-6 shadow-2xl flex justify-between items-center">
             <h1 class="text-lg font-bold flex items-center gap-2">
                 <span>🛡️</span> پنل مدیریت کافه سلامت
             </h1>
-            <a href="index.html" class="text-sm text-indigo-400 hover:text-indigo-300 flex items-center gap-1 transition-colors">
-                <span>مشاهده سایت</span> ⬅
-            </a>
+            <div class="flex items-center gap-4">
+                <button onclick="resetToken()" class="text-xs text-red-400 hover:text-red-300 transition-colors">تغییر توکن</button>
+                <a href="index.html" class="text-sm text-indigo-400 hover:text-indigo-300 flex items-center gap-1 transition-colors">
+                    <span>مشاهده سایت</span> ⬅
+                </a>
+            </div>
         </div>
 
         <!-- فرم آپلود صوت جدید -->
-        <div class="bg-gray-950/50 border border-gray-800/80 rounded-xl p-5 mb-6">
+        <div class="bg-gray-900/80 backdrop-blur-md border border-gray-800 rounded-2xl p-6 shadow-2xl">
             <h2 class="text-sm font-semibold text-indigo-400 mb-4 flex items-center gap-2">
-                <span>➕</span> آپلود صوت جدید از کامپیوتر
+                <span>➕</span> آپلود جلسه جدید
             </h2>
 
             <form id="uploadForm" onsubmit="handleUpload(event)" class="space-y-4">
@@ -39,13 +42,13 @@
                     <label class="block text-xs text-gray-400 mb-1.5">عنوان جلسه</label>
                     <input type="text" id="sessionTitle" required 
                         placeholder="مثال: جلسه اول - مقدمه" 
-                        class="w-full bg-gray-900 border border-gray-800 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-500 transition-colors">
+                        class="w-full bg-gray-950 border border-gray-800 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-500 transition-colors">
                 </div>
 
                 <div>
                     <label class="block text-xs text-gray-400 mb-1.5">انتخاب فایل صوتی (MP3)</label>
                     <input type="file" id="audioFile" accept="audio/mp3,audio/*" required
-                        class="w-full text-xs text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-indigo-600 file:text-white hover:file:bg-indigo-500 file:cursor-pointer cursor-pointer bg-gray-900 border border-gray-800 rounded-lg">
+                        class="w-full text-xs text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-indigo-600 file:text-white hover:file:bg-indigo-500 file:cursor-pointer cursor-pointer bg-gray-950 border border-gray-800 rounded-lg">
                 </div>
 
                 <button type="submit" id="submitBtn" 
@@ -53,11 +56,17 @@
                     آپلود و انتشار در سایت
                 </button>
             </form>
+            <p id="statusMessage" class="text-xs text-center text-gray-400 mt-4"></p>
         </div>
 
-        <!-- بخش وضعیت و مدیریت -->
-        <div class="border-t border-gray-800/80 pt-4 text-center">
-            <p id="statusMessage" class="text-xs text-gray-400"></p>
+        <!-- مدیریت جلسات موجود -->
+        <div class="bg-gray-900/80 backdrop-blur-md border border-gray-800 rounded-2xl p-6 shadow-2xl">
+            <h2 class="text-sm font-semibold text-indigo-400 mb-4 flex items-center gap-2">
+                <span>🎧</span> مدیریت و حذف جلسات
+            </h2>
+            <div id="adminSessionsList" class="space-y-3">
+                <p class="text-xs text-gray-500 text-center py-4">در حال بارگذاری...</p>
+            </div>
         </div>
 
     </div>
@@ -67,19 +76,28 @@
         const repo = "soot-jalasat";
         const filePath = "sessions.json";
 
-        // مدیریت توکن امن در مرورگر برای جلوگیری از لو رفتن در گیت‌هاب
+        // این تابع به محض لود شدن یا نیاز، حتماً از طریق prompt توکن را می‌پرسد
         function getGitHubToken() {
             let token = localStorage.getItem("github_token");
-            if (!token) {
-                token = prompt("لطفاً توکن دسترسی گیت‌هاب (Personal Access Token) خود را وارد کنید:");
-                if (token) {
+            if (!token || token === "null" || token === "undefined") {
+                token = prompt("لطفاً توکن دسترسی گیت‌هاب (API Token) خود را وارد کنید:");
+                if (token && token.trim() !== "") {
                     localStorage.setItem("github_token", token.trim());
+                    return token.trim();
+                } else {
+                    alert("وارد کردن توکن برای کار با پنل الزامی است!");
+                    return null;
                 }
             }
-            return localStorage.getItem("github_token");
+            return token;
         }
 
-        // تابع ارتباط با گیت‌هاب
+        function resetToken() {
+            localStorage.removeItem("github_token");
+            alert("توکن پاک شد. صفحه مجدداً بارگذاری می‌شود تا توکن جدید وارد کنید.");
+            location.reload();
+        }
+
         async function callGitHubAPI(url, method = "GET", bodyData = null) {
             const token = getGitHubToken();
             if (!token) throw new Error("توکن گیت‌هاب وارد نشده است.");
@@ -96,12 +114,45 @@
             const response = await fetch(url, options);
             if (response.status === 401) {
                 localStorage.removeItem("github_token");
-                throw new Error("توکن گیت‌هاب نامعتبر یا منقضی شده است (401). لطفاً صفحه را رفرش کنید.");
+                throw new Error("توکن نامعتبر یا منقضی شده است (401). لطفاً دوباره توکن وارد کنید.");
             }
             return response;
         }
 
-        // عملیات آپلود فایل و ثبت در sessions.json
+        async function loadAdminSessions() {
+            const container = document.getElementById("adminSessionsList");
+            try {
+                const apiUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${filePath}`;
+                const res = await callGitHubAPI(apiUrl, "GET");
+                if (!res.ok) throw new Error("فایل جلسات یافت نشد.");
+
+                const data = await res.json();
+                const sessions = JSON.parse(decodeURIComponent(escape(atob(data.content))));
+
+                if (sessions.length === 0) {
+                    container.innerHTML = `<p class="text-xs text-gray-500 text-center py-4">هیچ جلسه‌ای ثبت نشده است.</p>`;
+                    return;
+                }
+
+                container.innerHTML = "";
+                sessions.forEach((session, index) => {
+                    container.innerHTML += `
+                        <div class="bg-gray-950/60 border border-gray-800/80 rounded-xl p-4 flex flex-col gap-3">
+                            <div class="flex justify-between items-center">
+                                <span class="text-sm font-medium text-gray-200">${session.title}</span>
+                                <button onclick="deleteSession(${index})" class="text-xs text-red-400 hover:text-red-300 bg-red-500/10 px-2.5 py-1 rounded-lg transition-colors">حذف</button>
+                            </div>
+                            <audio controls class="w-full h-9">
+                                <source src="${session.url}" type="audio/mpeg">
+                            </audio>
+                        </div>
+                    `;
+                });
+            } catch (error) {
+                container.innerHTML = `<p class="text-xs text-red-400 text-center py-4">خطا: ${error.message}</p>`;
+            }
+        }
+
         async function handleUpload(event) {
             event.preventDefault();
             const titleInput = document.getElementById("sessionTitle").value;
@@ -112,10 +163,9 @@
             if (!fileInput) return;
 
             submitBtn.disabled = true;
-            statusMsg.textContent = "در حال آپلود فایل صوتی و بروزرسانی گیت‌هاب...";
+            statusMsg.textContent = "در حال آپلود صوت و ثبت در گیت‌هاب...";
 
             try {
-                // ۱. خواندن فایل‌ها از گیت‌هاب برای آپدیت لیست جلسات
                 const apiUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${filePath}`;
                 let sessionsList = [];
                 let fileSha = "";
@@ -124,63 +174,88 @@
                 if (getRes.ok) {
                     const data = await getRes.json();
                     fileSha = data.sha;
-                    // دیکد کردن محتوای فعلی sessions.json
-                    const decodedContent = decodeURIComponent(escape(atob(data.content)));
-                    sessionsList = JSON.parse(decodedContent);
+                    sessionsList = JSON.parse(decodeURIComponent(escape(atob(data.content))));
                 }
 
-                // ۲. آپلود خود فایل صوتی به مخزن (در پوشه‌ای مثل audios/)
                 const audioFileName = `audios/${Date.now()}_${fileInput.name}`;
                 const audioApiUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${audioFileName}`;
                 
-                // تبدیل فایل به بیس‌کاره
                 const base64Audio = await new Promise((resolve) => {
                     const reader = new FileReader();
                     reader.onload = () => resolve(reader.result.split(',')[1]);
                     reader.readAsDataURL(fileInput);
                 });
 
-                const audioBody = {
+                const audioRes = await callGitHubAPI(audioApiUrl, "PUT", {
                     message: `Upload audio: ${titleInput}`,
                     content: base64Audio
-                };
+                });
 
-                const audioRes = await callGitHubAPI(audioApiUrl, "PUT", audioBody);
-                if (!audioRes.ok) throw new Error("خطا در آپلود فایل صوتی به گیت‌هاب.");
-
+                if (!audioRes.ok) throw new Error("خطا در آپلود فایل صوتی.");
                 const audioDataJson = await audioRes.json();
-                const audioDownloadUrl = audioDataJson.content.download_url;
 
-                // ۳. اضافه کردن مشخصات جلسه جدید به لیست
                 sessionsList.push({
                     title: titleInput,
-                    url: audioDownloadUrl,
+                    url: audioDataJson.content.download_url,
                     date: new Date().toISOString()
                 });
 
-                // ۴. آپدیت کردن فایل نهایی sessions.json در گیت‌هاب
-                const updatedContentBase64 = btoa(unescape(encodeURIComponent(JSON.stringify(sessionsList, null, 2))));
-                const updateBody = {
-                    message: `Add new session: ${titleInput}`,
-                    content: updatedContentBase64,
+                const updateRes = await callGitHubAPI(apiUrl, "PUT", {
+                    message: `Add session: ${titleInput}`,
+                    content: btoa(unescape(encodeURIComponent(JSON.stringify(sessionsList, null, 2)))),
                     sha: fileSha
-                };
+                });
 
-                const updateRes = await callGitHubAPI(apiUrl, "PUT", updateBody);
                 if (updateRes.ok) {
-                    statusMsg.textContent = "✅ جلسه با موفقیت آپلود و در سایت منتشر شد!";
+                    statusMsg.textContent = "✅ با موفقیت منتشر شد!";
                     document.getElementById("uploadForm").reset();
+                    loadAdminSessions();
                 } else {
-                    throw new Error("خطا در ذخیره لیست جلسات.");
+                    throw new Error("خطا در ثبت لیست.");
                 }
 
             } catch (error) {
-                console.error(error);
                 statusMsg.textContent = "❌ " + error.message;
             } finally {
                 submitBtn.disabled = false;
             }
         }
+
+        async function deleteSession(index) {
+            if (!confirm("آیا از حذف این جلسه مطمئن هستید؟")) return;
+
+            try {
+                const apiUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${filePath}`;
+                const res = await callGitHubAPI(apiUrl, "GET");
+                if (!res.ok) throw new Error("خطا در خواندن اطلاعات.");
+
+                const data = await res.json();
+                let sessionsList = JSON.parse(decodeURIComponent(escape(atob(data.content))));
+                
+                sessionsList.splice(index, 1);
+
+                const updateRes = await callGitHubAPI(apiUrl, "PUT", {
+                    message: "Delete session",
+                    content: btoa(unescape(encodeURIComponent(JSON.stringify(sessionsList, null, 2)))),
+                    sha: data.sha
+                });
+
+                if (updateRes.ok) {
+                    alert("جلسه حذف شد.");
+                    loadAdminSessions();
+                } else {
+                    throw new Error("خطا در ذخیره تغییرات.");
+                }
+            } catch (error) {
+                alert("خطا: " + error.message);
+            }
+        }
+
+        // به محض باز شدن صفحه، برای گرفتن لیست، توکن پرسیده می‌شود
+        window.onload = function() {
+            getGitHubToken();
+            loadAdminSessions();
+        };
     </script>
 </body>
 </html>
