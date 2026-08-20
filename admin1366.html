@@ -11,6 +11,9 @@
         body { font-family: 'Vazirmatn', sans-serif; }
         .glass { background: rgba(17, 24, 39, 0.85); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.08); }
         .glow { box-shadow: 0 0 50px -10px rgba(99, 102, 241, 0.25); }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: rgba(0,0,0,0.1); }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 4px; }
     </style>
 </head>
 <body class="bg-gradient-to-br from-gray-950 via-gray-900 to-indigo-950 text-gray-100 min-h-screen flex items-center justify-center p-4 md:p-8">
@@ -56,7 +59,7 @@
     </div>
 
     <script>
-      // === تنظیمات گیت‌هاب و فضای ابری ===
+        // === تنظیمات گیت‌هاب و فضای ابری ===
         const GITHUB_USER = "misaghshiralix-ctrl";
         const GITHUB_REPO = "soot-jalasat";
         const GITHUB_TOKEN = "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";
@@ -65,7 +68,7 @@
         // تنظیمات Cloudinary
         const CLOUD_NAME = "sfyrkwkq"; 
         const UPLOAD_PRESET = "soot-j";
-        // =====================================
+        // ====================================
 
         let currentSessions = [];
         let fileSha = "";
@@ -83,18 +86,53 @@
 
         async function fetchSessions() {
             const container = document.getElementById('admin-list');
-            container.innerHTML = "<p class='text-gray-500 text-xs text-center py-2'>در حال دریافت اطلاعات...</p>";
+            container.innerHTML = "<p class='text-gray-500 text-xs text-center py-2'>در حال دریافت اطلاعات از گیت‌هاب...</p>";
 
             try {
                 const res = await fetch(`https://api.github.com/repos/${GITHUB_USER}/${GITHUB_REPO}/contents/sessions.json`, {
                     headers: { "Authorization": `token ${GITHUB_TOKEN}` }
                 });
+                
+                if (!res.ok) throw new Error("GitHub fetch failed");
+                
                 const data = await res.json();
                 fileSha = data.sha;
-                currentSessions = JSON.parse(decodeURIComponent(escape(atob(data.content))));
+                
+                // Decode base64 content safely (supporting UTF-8 Persian text)
+                const jsonString = decodeURIComponent(escape(atob(data.content)));
+                currentSessions = JSON.parse(jsonString);
+                
                 renderAdminList();
             } catch (err) {
-                container.innerHTML = "<p class='text-red-400 text-xs text-center'>خطا در اتصال به گیت‌هاب.</p>";
+                container.innerHTML = "<p class='text-red-400 text-xs text-center'>خطا در اتصال به گیت‌هاب. لطفاً نام ریپازیتوری را بررسی کنید.</p>";
+            }
+        }
+
+        async function updateGitHub(newSessions) {
+            const contentEncoded = btoa(unescape(encodeURIComponent(JSON.stringify(newSessions, null, 2))));
+            
+            const res = await fetch(`https://api.github.com/repos/${GITHUB_USER}/${GITHUB_REPO}/contents/sessions.json`, {
+                method: "PUT",
+                headers: {
+                    "Authorization": `token ${GITHUB_TOKEN}`,
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    message: "Update sessions via admin panel",
+                    content: contentEncoded,
+                    sha: fileSha
+                })
+            });
+
+            if (res.ok) {
+                const data = await res.json();
+                fileSha = data.content.sha;
+                currentSessions = newSessions;
+                renderAdminList();
+                return true;
+            } else {
+                alert("❌ خطا در ثبت تغییرات در گیت‌هاب.");
+                return false;
             }
         }
 
@@ -104,33 +142,75 @@
             const file = fileInput.files[0];
 
             if (!title || !file) {
-                alert('⚠️ لطفاً هم عنوان جلسه و هم فایل صوتی را انتخاب کنید.');
+                alert('⚠️ لطفاً عنوان جلسه و فایل صوتی را انتخاب کنید.');
                 return;
             }
 
             const btn = document.getElementById('submit-btn');
-            btn.innerText = "در حال آپلود فایل...";
+            btn.innerText = "در حال آپلود فایل صوتی به فضای ابری...";
 
-            // ۱. آپلود فایل به کلودینری
             const formData = new FormData();
             formData.append('file', file);
             formData.append('upload_preset', UPLOAD_PRESET);
 
             try {
-                const cloudRes = await fetch(`https://api.com/v1_1/${CLOUD_NAME}/auto/upload`, { // (یا آدرس صحیح آپلود کلودینری)
+                const cloudRes = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/auto/upload`, {
                     method: 'POST',
                     body: formData
                 });
-                
-                // توجه: آدرس دقیق API کلودینری به شکل زیر است:
-                // https://api.cloudinary.com/v1_1/ نام_شما /upload
-                
-            } catch (e) {
-                // ... ادامه منطق آپلود و ثبت در گیت‌هاب
+                const cloudData = await cloudRes.json();
+
+                if (!cloudData.secure_url) {
+                    alert('❌ خطا در آپلود فایل به فضای ابری. تنظیمات Cloudinary را بررسی کنید.');
+                    btn.innerText = "آپلود و انتشار در سایت";
+                    return;
+                }
+
+                const audioUrl = cloudData.secure_url;
+                btn.innerText = "در حال ثبت در گیت‌هاب...";
+
+                currentSessions.unshift({ title, src: audioUrl });
+                const success = await updateGitHub(currentSessions);
+
+                if (success) {
+                    document.getElementById('title').value = '';
+                    fileInput.value = '';
+                    alert('✅ صوت با موفقیت آپلود و منتشر شد!');
+                }
+            } catch (err) {
+                alert('❌ خطایی در ارتباط با سرور آپلود رخ داد.');
+            } finally {
+                btn.innerText = "آپلود و انتشار در سایت";
             }
         }
-        
-        // بقیه متدها برای ثبت در گیت‌هاب...
+
+        async function deleteSession(index) {
+            if (confirm('🗑️ آیا از حذف این فایل صوتی اطمینان دارید؟')) {
+                currentSessions.splice(index, 1);
+                const success = await updateGitHub(currentSessions);
+                if (success) {
+                    alert('✅ با موفقیت حذف شد.');
+                }
+            }
+        }
+
+        function renderAdminList() {
+            const container = document.getElementById('admin-list');
+            if (currentSessions.length === 0) {
+                container.innerHTML = "<p class='text-gray-500 text-xs text-center py-4'>هیچ فایلی وجود ندارد.</p>";
+                return;
+            }
+
+            container.innerHTML = currentSessions.map((s, i) => `
+                <div class="flex justify-between items-center bg-gray-950/80 border border-gray-800 p-3 rounded-xl">
+                    <span class="truncate text-sm text-gray-300 ml-3">${s.title}</span>
+                    <button onclick="deleteSession(${i})" class="bg-red-500/10 hover:bg-red-500/20 text-red-400 text-xs px-3 py-1.5 rounded-lg transition shrink-0 cursor-pointer">
+                        <i class="fa-solid fa-trash"></i> حذف
+                    </button>
+                </div>
+            `).join('');
+        }
+
         checkAuth();
     </script>
 </body>
