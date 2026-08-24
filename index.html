@@ -3,11 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<<<<<<< HEAD
     <title>صوت جلسات</title>
-=======
-    <title>پادکست کافه سلامت</title>
->>>>>>> a196c50b87b73919f2af3fa97c6405c5b52ce84f
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet" type="text/css" />
     <style>
@@ -15,6 +11,26 @@
             font-family: 'Vazirmatn', sans-serif;
             background-color: #0b0f19;
             color: #f3f4f6;
+        }
+        /* بهبود نمایش اسکرول‌بار در مرورگرها */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1a1f2e;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #4f46e5;
+            border-radius: 10px;
+        }
+        /* انیمیشن لودینگ ساده */
+        .loading-pulse {
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 0.6; }
+            50% { opacity: 1; }
         }
     </style>
 </head>
@@ -25,11 +41,7 @@
         <!-- هدر سایت -->
         <div class="bg-gray-900/85 backdrop-blur-md border border-gray-800 rounded-2xl p-6 shadow-2xl text-center relative">
             <h1 class="text-2xl font-bold bg-gradient-to-r from-indigo-400 to-violet-400 bg-clip-text text-transparent mb-2">
-<<<<<<< HEAD
                 🎙️ صوت جلسات
-=======
-                🎙️ پادکست کافه سلامت
->>>>>>> a196c50b87b73919f2af3fa97c6405c5b52ce84f
             </h1>
             <p class="text-xs text-gray-400">مجموعه جلسات و مباحث تخصصی</p>
             
@@ -40,70 +52,159 @@
 
         <!-- لیست جلسات -->
         <div id="sessionsContainer" class="space-y-4">
-            <div class="bg-gray-900/80 border border-gray-800 rounded-2xl p-6 text-center text-gray-500 text-sm">
+            <div class="bg-gray-900/80 border border-gray-800 rounded-2xl p-6 text-center text-gray-500 text-sm loading-pulse">
                 در حال بارگذاری جلسات...
             </div>
+        </div>
+
+        <!-- فوتر -->
+        <div class="text-center text-[10px] text-gray-600 mt-8">
+          
         </div>
 
     </div>
 
     <script>
+        // ===== تنظیمات =====
         const owner = "misaghshiralix-ctrl";
         const repo = "soot-jalasat";
-        const filePath = "sessions.json";
+        const fileName = "sessions.json"; // نام فایل JSON
 
+        // ===== تابع اصلی بارگذاری =====
         async function loadPublicSessions() {
             const container = document.getElementById("sessionsContainer");
+            
             try {
-                // خواندن مستقیم از گیت‌هاب (یا فایل خام)
-                const url = `https://raw.githubusercontent.com/${owner}/${repo}/main/${filePath}?t=${Date.now()}`;
-                const res = await fetch(url);
+                // ساخت آدرس کامل فایل خام در گیت‌هاب
+                const url = `https://raw.githubusercontent.com/${owner}/${repo}/main/${fileName}?t=${Date.now()}`;
                 
-                if (!res.ok) throw new Error("فایل جلسات یافت نشد.");
+                const response = await fetch(url);
+                
+                // بررسی وضعیت پاسخ
+                if (!response.ok) {
+                    // اگر فایل وجود نداشت یا خطای شبکه
+                    if (response.status === 404) {
+                        throw new Error("فایل جلسات یافت نشد (404).");
+                    } else {
+                        throw new Error(`خطای شبکه: ${response.status} ${response.statusText}`);
+                    }
+                }
 
-                const sessions = await res.json();
+                // تبدیل به JSON
+                let sessions;
+                try {
+                    sessions = await response.json();
+                } catch (parseError) {
+                    throw new Error("فرمت فایل JSON نامعتبر است.");
+                }
 
-                if (!sessions || sessions.length === 0) {
+                // بررسی اینکه آرایه باشد
+                if (!Array.isArray(sessions)) {
+                    throw new Error("داده‌های دریافتی آرایه نیستند.");
+                }
+
+                // اگر آرایه خالی بود
+                if (sessions.length === 0) {
                     container.innerHTML = `
                         <div class="bg-gray-900/80 border border-gray-800 rounded-2xl p-6 text-center text-gray-400 text-sm">
-                            هنوز جلسه‌ای منتشر نشده است.
+                            📭 هنوز جلسه‌ای منتشر نشده است.
                         </div>`;
                     return;
                 }
 
+                // ===== ساخت کارت‌های جلسات =====
                 container.innerHTML = "";
-                // نمایش از جدیدترین به قدیمی‌ترین
-                sessions.slice().reverse().forEach((session) => {
-                    container.innerHTML += `
-                        <div class="bg-gray-900/80 backdrop-blur-md border border-gray-800 rounded-2xl p-5 shadow-xl flex flex-col gap-4">
-                            <div class="flex justify-between items-center">
-                                <h2 class="text-sm font-semibold text-gray-200">${session.title}</h2>
-                                <span class="text-[10px] text-gray-500">${new Date(session.date).toLocaleDateString('fa-IR')}</span>
-                            </div>
-                            
-                            <audio controls class="w-full h-10 accent-indigo-500">
-                                <source src="${session.url}" type="audio/mpeg">
-                                مرورگر شما از پخش صوت پشتیبانی نمی‌کند.
-                            </audio>
 
-                            <div class="flex justify-end">
-                                <a href="${session.url}" download class="text-xs text-indigo-400 hover:text-indigo-300 flex items-center gap-1 transition-colors bg-indigo-500/10 px-3 py-1.5 rounded-lg">
-                                    📥 دانلود صوت
-                                </a>
-                            </div>
-                        </div>
-                    `;
+                // مرتب‌سازی از جدیدترین به قدیمی‌ترین (بر اساس تاریخ)
+                const sortedSessions = [...sessions].sort((a, b) => {
+                    return new Date(b.date) - new Date(a.date);
                 });
 
+                sortedSessions.forEach((session, index) => {
+                    // اعتبارسنجی اولیه هر جلسه
+                    if (!session.title || !session.url) {
+                        console.warn(`جلسه ${index + 1} فاقد عنوان یا آدرس است.`, session);
+                        return; // این جلسه را نمایش نده
+                    }
+
+                    // فرمت تاریخ به فارسی
+                    let formattedDate = "تاریخ نامشخص";
+                    try {
+                        const dateObj = new Date(session.date);
+                        if (!isNaN(dateObj.getTime())) {
+                            formattedDate = dateObj.toLocaleDateString('fa-IR', {
+                                year: 'numeric',
+                                month: 'long',
+                                day: 'numeric'
+                            });
+                        }
+                    } catch (e) {
+                        console.warn("خطا در فرمت تاریخ برای جلسه:", session.title);
+                    }
+
+                    // ساخت کارت
+                    const card = document.createElement("div");
+                    card.className = "bg-gray-900/80 backdrop-blur-md border border-gray-800 rounded-2xl p-5 shadow-xl flex flex-col gap-4 hover:border-gray-700 transition-colors";
+                    
+                    card.innerHTML = `
+                        <div class="flex justify-between items-center">
+                            <h2 class="text-sm font-semibold text-gray-200 line-clamp-1">${escapeHtml(session.title)}</h2>
+                            <span class="text-[10px] text-gray-500 whitespace-nowrap">${formattedDate}</span>
+                        </div>
+                        
+                        <audio controls preload="metadata" class="w-full h-10 accent-indigo-500 rounded-lg">
+                            <source src="${escapeHtml(session.url)}" type="audio/mpeg">
+                            مرورگر شما از پخش صوت پشتیبانی نمی‌کند.
+                        </audio>
+
+                        <div class="flex justify-end">
+                            <a href="${escapeHtml(session.url)}" download class="text-xs text-indigo-400 hover:text-indigo-300 flex items-center gap-1 transition-colors bg-indigo-500/10 px-3 py-1.5 rounded-lg hover:bg-indigo-500/20">
+                                📥 دانلود صوت
+                            </a>
+                        </div>
+                    `;
+
+                    container.appendChild(card);
+                });
+
+                // اگر هیچ کارتی ساخته نشد (مثلاً همه بی‌اعتبار بودند)
+                if (container.children.length === 0) {
+                    container.innerHTML = `
+                        <div class="bg-gray-900/80 border border-gray-800 rounded-2xl p-6 text-center text-gray-400 text-sm">
+                            ⚠️ هیچ جلسه معتبری برای نمایش وجود ندارد.
+                        </div>`;
+                }
+
             } catch (error) {
+                // نمایش خطا به کاربر + لاگ در کنسول برای دیباگ
+                console.error("❌ خطای بارگذاری جلسات:", error);
+                
                 container.innerHTML = `
-                    <div class="bg-gray-900/80 border border-gray-800 rounded-2xl p-6 text-center text-red-400 text-sm">
-                        خطا در بارگذاری جلسات سایت.
-                    </div>`;
+                    <div class="bg-gray-900/80 border border-red-800/50 rounded-2xl p-6 text-center text-red-400 text-sm">
+                        <span class="block mb-2">❌ خطا در بارگذاری جلسات</span>
+                        <span class="text-xs text-gray-500">${escapeHtml(error.message)}</span>
+                        <button onclick="loadPublicSessions()" class="mt-3 text-xs bg-indigo-600/30 hover:bg-indigo-600/50 px-4 py-2 rounded-lg transition-colors text-indigo-300">
+                            🔄 تلاش مجدد
+                        </button>
+                    </div>
+                `;
             }
         }
 
-        window.onload = loadPublicSessions;
+        // ===== ابزار امنیتی برای جلوگیری از XSS =====
+        function escapeHtml(unsafe) {
+            if (!unsafe) return '';
+            return unsafe
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        // ===== بارگذاری خودکار هنگام لود صفحه =====
+        window.addEventListener('DOMContentLoaded', loadPublicSessions);
     </script>
+
 </body>
 </html>
