@@ -47,10 +47,15 @@
     </div>
 
     <script>
+        // === تنظیمات گیت‌هاب ===
         const owner = "misaghshiralix-ctrl";
         const repo = "soot-jalasat";
         const filePath = "sessions.json";
         const PASS = "1366";
+
+        // === تنظیمات Cloudinary (اصلاح‌شده) ===
+        const CLOUDINARY_CLOUD_NAME = "sfyrkwkq";
+        const CLOUDINARY_PRESET = "soot-j";
 
         window.onload = () => {
             if (!localStorage.getItem("github_token")) {
@@ -120,10 +125,32 @@
             const status = document.getElementById("status");
 
             btn.disabled = true;
-            status.textContent = "در حال بررسی فایل‌ها...";
+            status.textContent = "در حال آپلود فایل صوتی به Cloudinary...";
 
             try {
                 const token = localStorage.getItem("github_token");
+
+                // 1. آپلود فایل صوتی به Cloudinary
+                const formData = new FormData();
+                formData.append("file", file);
+                formData.append("upload_preset", CLOUDINARY_PRESET);
+
+                const cloudRes = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/auto/upload`, {
+                    method: "POST",
+                    body: formData
+                });
+
+                if (!cloudRes.ok) {
+                    const errData = await cloudRes.json();
+                    throw new Error(errData.error?.message || "خطا در آپلود به Cloudinary");
+                }
+
+                const cloudData = await cloudRes.json();
+                const audioUrl = cloudData.secure_url;
+
+                status.textContent = "فایل آپلود شد. در حال به روزرسانی دیتابیس...";
+
+                // 2. دریافت sessions.json از گیت‌هاب
                 let list = [];
                 let fileSha = null;
 
@@ -144,51 +171,33 @@
                     }
                 }
 
-                status.textContent = "در حال آپلود فایل صوتی...";
+                // ثبت جلسه با آدرس اختصاصی Cloudinary
+                list.push({ 
+                    title: title, 
+                    url: audioUrl,
+                    date: new Date().toISOString()
+                });
 
-                const reader = new FileReader();
-                reader.readAsDataURL(file);
-                reader.onload = async () => {
-                    const base64 = reader.result.split(',')[1];
-                    const fileName = `audios/${Date.now()}_${file.name}`;
-                    
-                    const audioRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${fileName}`, {
-                        method: "PUT",
-                        headers: { "Authorization": `token ${token}`, "Content-Type": "application/json" },
-                        body: JSON.stringify({ message: "upload audio", content: base64 })
-                    });
-                    
-                    if (!audioRes.ok) throw new Error("خطا در آپلود فایل صوتی");
-                    const audioData = await audioRes.json();
-                    
-                    // ذخیره عنوان، لینک و تاریخ دقیق میلادی
-                    list.push({ 
-                        title: title, 
-                        url: audioData.content.download_url,
-                        date: new Date().toISOString()
-                    });
-
-                    status.textContent = "در حال ثبت نهایی...";
-
-                    const updateBody = {
-                        message: "update sessions list",
-                        content: btoa(unescape(encodeURIComponent(JSON.stringify(list, null, 2))))
-                    };
-                    if (fileSha) updateBody.sha = fileSha;
-
-                    const updateRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${filePath}`, {
-                        method: "PUT",
-                        headers: { "Authorization": `token ${token}`, "Content-Type": "application/json" },
-                        body: JSON.stringify(updateBody)
-                    });
-
-                    if (!updateRes.ok) throw new Error("خطا در ثبت لیست جلسات");
-
-                    status.textContent = "✅ با موفقیت منتشر شد!";
-                    btn.disabled = false;
-                    document.getElementById("uploadForm").reset();
-                    loadSessionsList();
+                // 3. ثبت نهایی لیست جدید در گیت‌هاب
+                const updateBody = {
+                    message: "add session with Cloudinary audio link",
+                    content: btoa(unescape(encodeURIComponent(JSON.stringify(list, null, 2))))
                 };
+                if (fileSha) updateBody.sha = fileSha;
+
+                const updateRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${filePath}`, {
+                    method: "PUT",
+                    headers: { "Authorization": `token ${token}`, "Content-Type": "application/json" },
+                    body: JSON.stringify(updateBody)
+                });
+
+                if (!updateRes.ok) throw new Error("خطا در ثبت لیست جلسات در گیت‌هاب");
+
+                status.textContent = "✅ با موفقیت منتشر شد!";
+                btn.disabled = false;
+                document.getElementById("uploadForm").reset();
+                loadSessionsList();
+
             } catch (err) {
                 status.textContent = "❌ خطا: " + err.message;
                 btn.disabled = false;
@@ -208,6 +217,7 @@
                 const data = await res.json();
                 let list = JSON.parse(decodeURIComponent(escape(atob(data.content.replace(/\s/g, '')))));
 
+                // حذف از لیست
                 list.splice(index, 1);
 
                 const updateRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${filePath}`, {
